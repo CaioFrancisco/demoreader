@@ -61,9 +61,8 @@ class DemoPacket:
 				self.data.append(file_to_read.read(256).decode("utf-8")) # actual command
 			
 			case "dem_datatables":
-				#datatable_buffersize = 256*1024
-				loaded_datatable = ReadRawDataInt32(file_to_read)
-				# TODO: follow the datatable rabbithole, gotta parse whatever we just loaded
+				loaded_datatable = BitArrayBuffer( bitarray().from_bytes( ReadRawDataInt32(file_to_read) ) )
+				data += ParseDatatables(file_to_read)
 				
 			case "dem_stop" | "dem_lastcmd":
 				return True # this is the end of the demo!
