@@ -16,14 +16,14 @@ The process begins, once again, from the very start, if there are client stringt
 
 def ParseStringtables(stringtables_to_parse):
 	return_value = []
-	numstrings = unpack_short_int(bitarray_to_parse.read(2))
+	numstrings = unpack_short_int(stringtables_to_parse.read(2))
 				
 	for i in range(0, numstrings):
 		# base stringtable
 		curr_stringtable = { "data": None, "userdataPresent": False, "userdata": None }
 		
-		curr_stringtable["data"] = bitarray_to_parse.read(4096).decode("utf-8")
-		curr_stringtable["userdataPresent"] = loaded_stringtables.readbit(1).any()
+		curr_stringtable["data"] = stringtables_to_parse.read(4096).decode("utf-8")
+		curr_stringtable["userdataPresent"] = stringtables_to_parse.readbit(1).any()
 		
 		if curr_stringtable["userdataPresent"]:
 			curr_stringtable["userdata"] = ReadRawDataInt16(loaded_stringtables).decode("utf-8")
