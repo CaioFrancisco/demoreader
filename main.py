@@ -9,6 +9,7 @@ bitarray = lambda usr_input: _bitarray.bitarray(usr_input, endian="little")
 
 from common       import *
 from stringtables import *
+from datatables   import *
 
 if len(argv) < 2:
 	print(f"Usage: {argv[0]} [demo name]")
