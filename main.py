@@ -7,8 +7,8 @@ _bitarray = bitarray
 # i'm a dirty trickster
 bitarray = lambda usr_input: _bitarray.bitarray(usr_input, endian="little")
 
-from "./common.py"       import *
-from "./stringtables.py" import *
+from common       import *
+from stringtables import *
 
 if len(argv) < 2:
 	print(f"Usage: {argv[0]} [demo name]")

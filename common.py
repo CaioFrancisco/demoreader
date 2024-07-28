@@ -15,6 +15,9 @@ def unpack_int(four_byte_int):
 def unpack_char_int(char_int):
 	return unpack("<B", char_int)[0]
 
+def unpack_short_int(short_int):
+	return unpack("<H", short_int)[0]
+
 """
 this data structure is very used in demo packet headers.
 the first few bytes determine the length of the data stored.
@@ -35,7 +38,7 @@ class BitArrayBuffer:
 	
 	def __init__(self, obj_to_inherit):
 		if type(obj_to_inherit) != type(bitarray()):
-			raise RuntimeError("Class initialized with a non-bitarray object.")
+			obj_to_inherit = bitarray()
 			
 		self.bitArray = obj_to_inherit
 	
@@ -48,14 +51,11 @@ class BitArrayBuffer:
 		# adds the right chunk of the bitarray into the return value, and adjusts the index accordingly
 		return_value += self.bitArray[self.index : self.index + bits_to_read]
 		self.index += bits_to_read
-		
-		if (len(return_value) % 8) == 0: # oho, our data can be aligned as bytes, so we'll return as bytes.
-			return_value = return_value.tobytes()
 			
 		return return_value
 	
 	def read(self, bytes_to_read): # read as bytes
-		return self.read(bytes_to_read * 8)
+		return self.read(bytes_to_read * 8).tobytes()
 	
 	def seek(self, bits_to_seek):
 		self.index += bits_to_seek

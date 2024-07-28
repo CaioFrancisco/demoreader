@@ -14,15 +14,15 @@ Then, a bit flag is written, marking whether there's client stringtables.
 The process begins, once again, from the very start, if there are client stringtables. If not, then congratulations, your stringtables have been successfuly parsed.
 """
 
-def ParseStringtables(file_to_read):
+def ParseStringtables(stringtables_to_parse):
 	return_value = []
-	numstrings = unpack("<H", loaded_stringtables.read(2))[0] # 16 bit integer
+	numstrings = unpack_short_int(bitarray_to_parse.read(2))
 				
 	for i in range(0, numstrings):
 		# base stringtable
 		curr_stringtable = { "data": None, "userdataPresent": False, "userdata": None }
 		
-		curr_stringtable["data"] = loaded_stringtables.read(4096).decode("utf-8")
+		curr_stringtable["data"] = bitarray_to_parse.read(4096).decode("utf-8")
 		curr_stringtable["userdataPresent"] = loaded_stringtables.readbit(1).any()
 		
 		if curr_stringtable["userdataPresent"]:
@@ -30,21 +30,8 @@ def ParseStringtables(file_to_read):
 	
 		return_value.append(curr_stringtable)
 	
-	if loaded_stringtables.read(1).any(): # so we're parsing client entries
-		# source code also does a ctrl+c and ctrl+v, don't judge me.
-		numstrings = unpack("<H", loaded_stringtables.read(2))[0] # 16 bit integer
-		
-		for i in range(0, numstrings):
-			# base stringtable
-			curr_stringtable = { "data": None, "userdataPresent": False, "userdata": None }
-			
-			curr_stringtable["data"] = loaded_stringtables.read(4096).decode("utf-8")
-			curr_stringtable["userdataPresent"] = loaded_stringtables.readbit(1).any()
-			
-			if curr_stringtable["userdataPresent"]:
-				curr_stringtable["userdata"] = ReadRawDataInt16(loaded_stringtables).decode("utf-8")
-			
-			if i >= 2: # source code does this, for some reason??????????????????????
-				return_value.append(curr_stringtable)
+	if loaded_stringtables.read(1).any(): # so we're parsing client entries...
+		stringtables_to_parse.bitArray.extend("0") # small hack so we can call this same function to parse the rest of the stringtables
+		return_value += ParseStringtables(stringtables_to_parse)
 	
 	return return_value
