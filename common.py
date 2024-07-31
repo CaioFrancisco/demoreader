@@ -18,6 +18,10 @@ def unpack_char_int(char_int):
 def unpack_short_int(short_int):
 	return unpack("<H", short_int)[0]
 
+# ahahaha fuck you 5-bit reads
+def ReadUBitInt(bitarray_to_read, amt_bits):
+	return int(bitarray_to_read.to01(), 2)
+
 """
 this data structure is very used in demo packet headers.
 the first few bytes determine the length of the data stored.
@@ -30,6 +34,19 @@ def ReadRawData(file_to_read, data_length_size):
 # aliases for common data length sizes
 ReadRawDataInt32 = lambda file_to_read: dem_ReadRawData(file_to_read, 4)
 ReadRawDataInt16 = lambda file_to_read: dem_ReadRawData(file_to_read, 2)
+
+def ReadAndAllocateString(buf_to_read):
+	MAX_READ = 2048 # max amount of bytes we can read
+	char_counter = 0
+	return_value = ""
+
+	while char_counter < MAX_READ:
+		char_counter += 1
+		character = chr(unpack_char_int(buf_to_read.read(1)))
+		return_value += character
+		if character == "\n": return return_value # \n is the string terminator
+
+	raise RuntimeError("ReadAndAllocateString over-read. Probably read an invalid chunk of memory.")	
 
 # just because i'm used to reading stuff like files
 class BitArrayBuffer:
