@@ -78,7 +78,7 @@ class DemoPacket:
 				if len(loaded_stringtables.bitArray) > 5000000 * 8: # 5 megabytes, source treats this as the maximum limit for stringtables
 					raise RuntimeError("Loaded a stringtable above the 5MB limit.")
 				
-				self.data += ParseStringtables(file_to_read)
+				data += ParseStringtables(loaded_stringtables)
 			
 demo_file = open(argv[1], "rb")
 curr_demoheader = DemoHeader(demo_file)
