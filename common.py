@@ -1,7 +1,8 @@
 """
 COMMON FUNCTIONS WHICH ARE USED BY OTHER MODULES
 """
-
+from struct import unpack
+from bitarray import bitarray
 
 """
 aliases for simple/common operations.
@@ -29,11 +30,11 @@ the function just reads those bytes, reads the data stored, then returns the dat
 """
 def ReadRawData(file_to_read, data_length_size):
 	data_length = unpack_int(file_to_read.read(data_length_size))
-	return file_to_read.read(found_data_length)
+	return file_to_read.read(data_length)
 
 # aliases for common data length sizes
-ReadRawDataInt32 = lambda file_to_read: dem_ReadRawData(file_to_read, 4)
-ReadRawDataInt16 = lambda file_to_read: dem_ReadRawData(file_to_read, 2)
+ReadRawDataInt32 = lambda file_to_read: ReadRawData(file_to_read, 4)
+ReadRawDataInt16 = lambda file_to_read: ReadRawData(file_to_read, 2)
 
 def ReadAndAllocateString(buf_to_read):
 	MAX_READ = 2048 # max amount of bytes we can read
@@ -55,12 +56,12 @@ class BitArrayBuffer:
 	
 	def __init__(self, obj_to_inherit):
 		if type(obj_to_inherit) != type(bitarray()):
-			obj_to_inherit = bitarray()
+			obj_to_inherit = bitarray(obj_to_inherit, endian="little")
 			
 		self.bitArray = obj_to_inherit
 	
 	def readbit(self, bits_to_read):
-		return_value = bitarray()
+		return_value = bitarray(endian="little")
 		
 		if self.index + bits_to_read > len(self.bitArray): # adjusts for going over-bound
 			bits_to_read -= (self.index + bits_to_read) - len(self.bitArray) 

@@ -1,11 +1,5 @@
 from sys import exit, argv
-from os import system
-from struct import unpack
 from bitarray import bitarray
-
-_bitarray = bitarray
-# i'm a dirty trickster
-bitarray = lambda usr_input: _bitarray.bitarray(usr_input, endian="little")
 
 from common       import *
 from stringtables import *
@@ -34,20 +28,29 @@ class DemoHeader:
 		self.sign_on_length = unpack_int(file_to_read.read(4))
 
 # there should never be a message addressed to 0, so ignore "fuck"
-demo_messages = ["fuck", "dem_signon", "dem_packet", "dem_synctick", "dem_consolecmd"
+demo_messages = ["fuck", "dem_signon", "dem_packet", "dem_synctick", "dem_consolecmd",
                  "dem_usercmd", "dem_datatables", "dem_stop", "dem_stringtables", "dem_lastcmd"]
 	
 class DemoPacket:
 	data = []
-	def __init__(self, file_to_read):
-		self.message_type = demo_messages[ unpack_char_int(file_to_read.read(1)) ]
+	stop = False
+	address = 0x0 # yeah
+	def __init__(self, file_to_read, demoheader):
+		self.address = file_to_read.tell()
+		self.message_type = unpack_char_int(file_to_read.read(1))
+		try:
+			self.message_type = demo_messages[ self.message_type ]
+		except IndexError:
+			print(f"Invalid DemoPacket:\nMessage type: {hex(self.message_type)} - Address: {hex(file_to_read.tell())}")
+			exit(1)
 		self.tick = unpack_int(file_to_read.read(4))
-		
+
 		match self.message_type:
 			case "dem_signon":
 				return # TODO: implement parsing dem_signon (do i really need to..?)
 				
 			case "dem_packet":
+				_ = ReadRawDataInt32(file_to_read)
 				return # TODO: also implement parsing this
 				
 			case "dem_synctick":
@@ -61,19 +64,21 @@ class DemoPacket:
 				self.data.append(file_to_read.read(256).decode("utf-8")) # actual command
 			
 			case "dem_datatables":
-				loaded_datatable = BitArrayBuffer( bitarray().from_bytes( ReadRawDataInt32(file_to_read) ) )
-				data += ParseDatatables(file_to_read)
+				loaded_datatable = BitArrayBuffer( bitarray(endian="little").from_bytes( ReadRawDataInt32(file_to_read) ) )
+				return # TODO
+				self.data += ParseDatatables(file_to_read)
 				
 			case "dem_stop" | "dem_lastcmd":
-				return True # this is the end of the demo!
+				self.stop = True
+				return # this is the end of the demo!
 			
 			case "dem_stringtables":
-				loaded_stringtables = BitArrayBuffer( bitarray().from_bytes( ReadRawDataInt32(file_to_read) ) )
+				loaded_stringtables = BitArrayBuffer( bitarray(endian="little").frombytes( ReadRawDataInt32(file_to_read) ) )
 				
-				if len(loaded_stringtables) > 5000000 * 8: # 5 megabytes, source treats this as the maximum limit for stringtables
+				if len(loaded_stringtables.bitArray) > 5000000 * 8: # 5 megabytes, source treats this as the maximum limit for stringtables
 					raise RuntimeError("Loaded a stringtable above the 5MB limit.")
 				
-				data += ParseStringtables(file_to_read)
+				self.data += ParseStringtables(file_to_read)
 			
 demo_file = open(argv[1], "rb")
 curr_demoheader = DemoHeader(demo_file)
@@ -84,7 +89,12 @@ header_parsed = f"Game directory: [{curr_demoheader.game_dir}] - Map name: [{cur
                 f"Sign-on data length: {curr_demoheader.sign_on_length}\n" + \
                  "-----------------------\n"
 				
+demo_file.seek(curr_demoheader.sign_on_length, 1)
 
-print(header_parsed)
+while True:
+    curr_demopacket = DemoPacket(demo_file, curr_demoheader)
+    if curr_demopacket.message_type: print(f"{curr_demopacket.message_type} -> {hex(curr_demopacket.address)}")
+    if curr_demopacket.data: print(curr_demopacket.data)
+    if curr_demopacket.stop: break # it means we reached a final message
 
 demo_file.close()

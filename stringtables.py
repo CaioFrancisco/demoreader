@@ -13,6 +13,7 @@ That is, until the last stringtable is written (and it's userdata, if it has any
 Then, a bit flag is written, marking whether there's client stringtables.
 The process begins, once again, from the very start, if there are client stringtables. If not, then congratulations, your stringtables have been successfuly parsed.
 """
+from common import *
 
 def ParseStringtables(stringtables_to_parse):
 	return_value = []
@@ -31,7 +32,7 @@ def ParseStringtables(stringtables_to_parse):
 		return_value.append(curr_stringtable)
 	
 	if loaded_stringtables.read(1).any(): # so we're parsing client entries...
-		stringtables_to_parse.bitArray.extend("0") # small hack so we can call this same function to parse the rest of the stringtables
+		stringtables_to_parse.bitArray.append("0") # small hack so we can call this same function to parse the rest of the stringtables
 		return_value += ParseStringtables(stringtables_to_parse)
 	
 	return return_value

@@ -22,7 +22,7 @@ aight we done reading props
 back to RecvTable_RecvClassInfos, we call DataTable_SetupReceiveTableFromSendTable
 what the fuck is this
 """
-class SendProp:
+#class SendProp:
 
 def ParseDatatables(datatables_to_parse):
     while (datatables_to_parse.readb(1).any()):
