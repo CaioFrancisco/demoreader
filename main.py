@@ -35,7 +35,7 @@ class DemoPacket:
     data = []
     stop = False
     address = 0x0 # yeah
-    def __init__(self, file_to_read, demoheader):
+    def __init__(self, file_to_read):
         self.address = file_to_read.tell()
         self.message_type = unpack_char_int(file_to_read.read(1))
         try:
@@ -50,7 +50,7 @@ class DemoPacket:
                 return # TODO: implement parsing dem_signon (do i really need to..?)
                 
             case "dem_packet":
-                _ = ReadRawDataInt32(file_to_read)
+                self.stop = True
                 return # TODO: also implement parsing this
                 
             case "dem_synctick":
@@ -61,7 +61,7 @@ class DemoPacket:
             
             case "dem_usercmd":
                 self.data.append(unpack_int(file_to_read.read(4))) # outgoing sequence, source code documentation says we can discard this
-                self.data.append(file_to_read.read(256).decode("utf-8")) # actual command
+                self.data.append(ReadRawDataInt32(file_to_read).decode("utf-8")) # actual command
             
             case "dem_datatables":
                 loaded_data = bitarray(endian="little")
@@ -84,7 +84,7 @@ class DemoPacket:
                 if len(loaded_stringtables.bitArray) > 5000000 * 8: # 5 megabytes, source treats this as the maximum limit for stringtables
                     raise RuntimeError("Loaded a stringtable above the 5MB limit.")
                 
-                self.data += ParseStringtables(loaded_stringtables)
+                self.data.append(ParseStringtables(loaded_stringtables))
             
 demo_file = open(argv[1], "rb")
 curr_demoheader = DemoHeader(demo_file)
@@ -96,11 +96,14 @@ header_parsed = f"Game directory: [{curr_demoheader.game_dir}] - Map name: [{cur
                  "-----------------------\n"
                 
 demo_file.seek(curr_demoheader.sign_on_length, 1)
+all_packets = []
 
 while True:
-    curr_demopacket = DemoPacket(demo_file, curr_demoheader)
-    if curr_demopacket.message_type: print(f"{curr_demopacket.message_type} -> {hex(curr_demopacket.address)}")
-    if curr_demopacket.data: print(curr_demopacket.data)
+    curr_demopacket = DemoPacket(demo_file)
+    all_packets.append(curr_demopacket)
     if curr_demopacket.stop: break # it means we reached a final message
 
+for packet_index in range(0, len(all_packets)):
+    packet = all_packets[packet_index]
+    print(f"PACKET {packet_index} -> 0x{hex(packet.address)}\nPacket type: {packet.message_type}\n=== DATA ===\n\n{packet.data}\n\n")
 demo_file.close()

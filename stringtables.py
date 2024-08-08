@@ -23,29 +23,48 @@ def ParseStringtables(buf_to_parse):
     for i in range(0, numtables):
         stringtable = base_stringtable
         stringtable["name"] = ReadString(buf_to_parse)
+        print("STRINGTABLE: ", stringtable["name"])
         stringtable["data"] = ParseStringtable(buf_to_parse)
         return_value.append(stringtable)
 
     return return_value
 
-def ParseStringtable(buf_to_parse):
-	return_value = []
-	numstrings = unpack_short_int(buf_to_parse.read(2))
-				
-	for i in range(0, numstrings):
-		# base stringtable
-		curr_stringtable = { "data": None, "userdataPresent": False, "userdata": None }
-		
-		curr_stringtable["data"] = ReadString(buf_to_parse)
-		curr_stringtable["userdataPresent"] = buf_to_parse.readbit(1).any()
-		
-		if curr_stringtable["userdataPresent"]:
-			curr_stringtable["userdata"] = ReadRawDataInt16(buf_to_parse).decode("utf-8")
-	
-		return_value.append(curr_stringtable)
-	
-	if buf_to_parse.readbit(1).any(): # so we're parsing client entries...
-		buf_to_parse.bitArray.append("0") # small hack so we can call this same function to parse the rest of the stringtables
-		return_value += ParseStringtables(buf_to_parse)
-	
-	return return_value
+def ParseStringtable(buf_to_parse, clientside_data = False):
+    return_value = []
+    numstrings = unpack_short_int(buf_to_parse.read(2))
+    print(numstrings)             
+    for i in range(0, numstrings):
+        # base stringtable
+        curr_stringtable = { "data": None, "userdataPresent": False, "userdata": None }
+        
+        curr_stringtable["data"] = ReadString(buf_to_parse)
+        curr_stringtable["userdataPresent"] = buf_to_parse.readbit(1).any()
+
+        if curr_stringtable["userdataPresent"]:
+            curr_stringtable["userdata"] = ReadRawDataInt16(buf_to_parse)
+
+        if i <= 1 and clientside_data:
+            continue
+        
+        """
+        if not clientside_data: print(curr_stringtable["data"])
+
+        if curr_stringtable["userdataPresent"]:
+            hexified_userdata = ""
+            asciified_userdata = ""
+            for i in curr_stringtable["userdata"]:
+                hexified_userdata += ("0" if i < 10 else "") + hex(i)[2:4].upper() + " " 
+                asciified_userdata += chr(i)
+
+            print("USERDATA:")
+            print(hexified_userdata, "|", asciified_userdata)
+        """
+        return_value.append(curr_stringtable)
+        
+    if not clientside_data: # so we're parsing client entries...
+        if buf_to_parse.readbit(1).any():
+            print("PARSING CLIENTSIDE DATA")
+            return_value += ParseStringtable(buf_to_parse, True) # it's identical to normal entries, so parse it again.
+    
+    return return_value
+
