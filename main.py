@@ -27,6 +27,28 @@ class DemoHeader:
         self.demo_frames   = unpack_int(file_to_read.read(4))
         self.sign_on_length = unpack_int(file_to_read.read(4))
 
+class democmdinfo:
+    flags = None
+
+    viewOrigin = None
+    viewAngles = None
+    localViewAngles = None
+
+    viewOrigin2 = None
+    viewAngles2 = None
+    localViewAngles2 = None
+
+    def __init__(self, file_to_read):
+        flags = unpack_int(file_to_read.read(4))
+        
+        viewOrigin = unpack_vector(file_to_read)
+        viewAngles = unpack_vector(file_to_read)
+        localViewAngles = unpack_vector(file_to_read)
+
+        viewOrigin2 = unpack_vector(file_to_read)
+        viewAngles2 = unpack_vector(file_to_read)
+        localViewAngles2 = unpack_vector(file_to_read)
+
 # there should never be a message addressed to 0, so ignore "fuck"
 demo_messages = ["fuck", "dem_signon", "dem_packet", "dem_synctick", "dem_consolecmd",
                  "dem_usercmd", "dem_datatables", "dem_stop", "dem_stringtables", "dem_lastcmd"]
@@ -37,21 +59,23 @@ class DemoPacket:
     address = 0x0 # yeah
     def __init__(self, file_to_read):
         self.address = file_to_read.tell()
-        self.message_type = unpack_char_int(file_to_read.read(1))
-        try:
-            self.message_type = demo_messages[ self.message_type ]
-        except IndexError:
-            print(f"Invalid DemoPacket:\nMessage type: {hex(self.message_type)} - Address: {hex(file_to_read.tell())}")
-            exit(1)
+        self.message_type = demo_messages[ unpack_char_int(file_to_read.read(1)) ]
+            
+        if self.message_type == "dem_stop" or self.message_type == "dem_lastcmd":
+            self.stop = True
+            return
+        
         self.tick = unpack_int(file_to_read.read(4))
-
+        self.data = []
         match self.message_type:
             case "dem_signon":
+                self.stop = True
                 return # TODO: implement parsing dem_signon (do i really need to..?)
                 
             case "dem_packet":
-                self.stop = True
-                return # TODO: also implement parsing this
+                self.data.append(democmdinfo(file_to_read))
+                self.data.append((unpack_int(file_to_read.read(4)), unpack_int(file_to_read.read(4)))) # in-going sequence, out-going sequence, respectivelly.
+                self.data.append(ReadRawDataInt32(file_to_read))
                 
             case "dem_synctick":
                 return # since we're just parsing, we can out-right ignore tick syncs.
@@ -60,14 +84,15 @@ class DemoPacket:
                 self.data.append(ReadRawDataInt32(file_to_read).decode("UTF-8")) # just the command
             
             case "dem_usercmd":
-                self.data.append(unpack_int(file_to_read.read(4))) # outgoing sequence, source code documentation says we can discard this
-                self.data.append(ReadRawDataInt32(file_to_read).decode("utf-8")) # actual command
+                self.data.append(unpack_int(file_to_read.read(4))) # some sequence we use to decode the command
+                self.data.append(ReadRawDataInt32(file_to_read)) # actual command
             
             case "dem_datatables":
                 loaded_data = bitarray(endian="little")
                 loaded_data.frombytes(ReadRawDataInt32(file_to_read))
 
                 loaded_datatable = BitArrayBuffer( loaded_data )
+                self.stop = True
                 return # TODO
                 self.data += ParseDatatables(file_to_read)
         
@@ -106,4 +131,5 @@ while True:
 for packet_index in range(0, len(all_packets)):
     packet = all_packets[packet_index]
     print(f"PACKET {packet_index} -> 0x{hex(packet.address)}\nPacket type: {packet.message_type}\n=== DATA ===\n\n{packet.data}\n\n")
+
 demo_file.close()

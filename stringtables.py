@@ -23,7 +23,6 @@ def ParseStringtables(buf_to_parse):
     for i in range(0, numtables):
         stringtable = base_stringtable
         stringtable["name"] = ReadString(buf_to_parse)
-        print("STRINGTABLE: ", stringtable["name"])
         stringtable["data"] = ParseStringtable(buf_to_parse)
         return_value.append(stringtable)
 
@@ -32,7 +31,6 @@ def ParseStringtables(buf_to_parse):
 def ParseStringtable(buf_to_parse, clientside_data = False):
     return_value = []
     numstrings = unpack_short_int(buf_to_parse.read(2))
-    print(numstrings)             
     for i in range(0, numstrings):
         # base stringtable
         curr_stringtable = { "data": None, "userdataPresent": False, "userdata": None }
@@ -63,7 +61,6 @@ def ParseStringtable(buf_to_parse, clientside_data = False):
         
     if not clientside_data: # so we're parsing client entries...
         if buf_to_parse.readbit(1).any():
-            print("PARSING CLIENTSIDE DATA")
             return_value += ParseStringtable(buf_to_parse, True) # it's identical to normal entries, so parse it again.
     
     return return_value

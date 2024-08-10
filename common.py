@@ -3,6 +3,7 @@ COMMON FUNCTIONS WHICH ARE USED BY OTHER MODULES
 """
 from struct import unpack
 from bitarray import bitarray
+from dataclasses import dataclass
 
 """
 aliases for simple/common operations.
@@ -18,6 +19,11 @@ def unpack_char_int(char_int):
 
 def unpack_short_int(short_int):
     return unpack("<H", short_int)[0]
+
+def unpack_vector(file_to_read):
+    return Vector3(
+        *unpack("<fff", file_to_read.read(12))
+    )
 
 # ahahaha fuck you 5-bit reads
 def ReadUBitInt(bitarray_to_read, amt_bits):
@@ -44,10 +50,21 @@ def ReadString(buf_to_read):
     while char_counter < MAX_READ:
         char_counter += 1
         character = chr(unpack_char_int(buf_to_read.read(1)))
-        return_value += character
         if character == "\x00": return return_value # \n is the string terminator
+        return_value += character
 
     raise RuntimeError("String over-read. Probably read an invalid chunk of memory.")	
+
+# easy way to do vectors
+
+@dataclass
+class Vector3:
+    x: float
+    y: float
+    z: float
+    
+    def get(self):
+        return (self.x, self.y, self.z)
 
 # just because i'm used to reading stuff like files
 class BitArrayBuffer:
