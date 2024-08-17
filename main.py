@@ -57,6 +57,8 @@ class DemoPacket:
     data = []
     stop = False
     address = 0x0 # yeah
+    is_binary = False
+    
     def __init__(self, file_to_read):
         self.address = file_to_read.tell()
         self.message_type = demo_messages[ unpack_char_int(file_to_read.read(1)) ]
@@ -73,6 +75,7 @@ class DemoPacket:
                 return # TODO: implement parsing dem_signon (do i really need to..?)
                 
             case "dem_packet":
+                self.is_binary = True
                 self.data.append(democmdinfo(file_to_read))
                 self.data.append((unpack_int(file_to_read.read(4)), unpack_int(file_to_read.read(4)))) # in-going sequence, out-going sequence, respectivelly.
                 self.data.append(ReadRawDataInt32(file_to_read))
@@ -84,10 +87,12 @@ class DemoPacket:
                 self.data.append(ReadRawDataInt32(file_to_read).decode("UTF-8")) # just the command
             
             case "dem_usercmd":
+                self.is_binary = True
                 self.data.append(unpack_int(file_to_read.read(4))) # some sequence we use to decode the command
                 self.data.append(ReadRawDataInt32(file_to_read)) # actual command
             
             case "dem_datatables":
+                self.is_binary = True
                 loaded_data = bitarray(endian="little")
                 loaded_data.frombytes(ReadRawDataInt32(file_to_read))
 
@@ -130,6 +135,6 @@ while True:
 
 for packet_index in range(0, len(all_packets)):
     packet = all_packets[packet_index]
-    print(f"PACKET {packet_index} -> 0x{hex(packet.address)}\nPacket type: {packet.message_type}\n=== DATA ===\n\n{packet.data}\n\n")
+    print(f"PACKET {packet_index} -> 0x{hex(packet.address)}\nPacket type: {packet.message_type}\n=== DATA ===\n\n{packet.data if not packet.is_binary else 'Binary :P'}\n\n")
 
 demo_file.close()
