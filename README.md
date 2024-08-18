@@ -8,7 +8,7 @@ It is currently based on [nillerusr's "source-engine" repository](https://github
 
 # Planned features
 
-* Read datatables. (Urgent)
+* Read datatables and Source packets. (urgent)
 
 * Write all data into a `.json` file.
 
