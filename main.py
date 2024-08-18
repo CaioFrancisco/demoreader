@@ -13,7 +13,6 @@ if __name__ != "__main__":
 if len(argv) < 2:
     print(f"Usage: {argv[0]} [demo name]")
     exit(1)
-
             
 demo_file = open(argv[1], "rb")
 
