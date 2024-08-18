@@ -1,37 +1,42 @@
 """
-THIS MODULE WAS JUST MADE TO PARSE STRINGTABLES!!!
-
-It turns out, stringtables are weirdly complex, so here's a poor explanation on it's data structure:
-
-First, the amount of stringtables is written in a 16-bit integer..
-Then, the 0th stringtable is written, in a 4096 bytes of allocated space.
-Then, a bit is written, being a flag marking whether this stringtable has userdata or not. If it is 0, skip ahead 2 lines in this explanation.
-If it is 1, then it has userdata. The userdata's length is written in a 16-bit integer, right after the bit.
-Then, the userdata is written. The userdata appears to just be another stringtable, so you can decode it as normal text as well.
-Then the cycle begins once again. 1th stringtable is written in 4096 bytes, a bit flag is written marking whether there's userdata, if there's no userdata, restart the cycle, if there is, just read above.
-That is, until the last stringtable is written (and it's userdata, if it has any.)
-Then, a bit flag is written, marking whether there's client stringtables.
-The process begins, once again, from the very start, if there are client stringtables. If not, then congratulations, your stringtables have been successfuly parsed.
+Stringtables are pretty complicated, so here's a separate module just to read them.
 """
+from common import *
 
-def ParseStringtables(stringtables_to_parse):
-	return_value = []
-	numstrings = unpack_short_int(stringtables_to_parse.read(2))
-				
-	for i in range(0, numstrings):
-		# base stringtable
-		curr_stringtable = { "data": None, "userdataPresent": False, "userdata": None }
-		
-		curr_stringtable["data"] = stringtables_to_parse.read(4096).decode("utf-8")
-		curr_stringtable["userdataPresent"] = stringtables_to_parse.readbit(1).any()
-		
-		if curr_stringtable["userdataPresent"]:
-			curr_stringtable["userdata"] = ReadRawDataInt16(loaded_stringtables).decode("utf-8")
-	
-		return_value.append(curr_stringtable)
-	
-	if loaded_stringtables.read(1).any(): # so we're parsing client entries...
-		stringtables_to_parse.bitArray.extend("0") # small hack so we can call this same function to parse the rest of the stringtables
-		return_value += ParseStringtables(stringtables_to_parse)
-	
-	return return_value
+def ParseStringtables(buf_to_parse):
+    return_value = []
+    numtables = unpack_char_int(buf_to_parse.read(1))
+    base_stringtable = {"name" : "", "data" : None}
+
+    for i in range(0, numtables):
+        stringtable = base_stringtable
+        stringtable["name"] = ReadString(buf_to_parse)
+        stringtable["data"] = ParseStringtable(buf_to_parse)
+        return_value.append(stringtable)
+
+    return return_value
+
+def ParseStringtable(buf_to_parse, clientside_data = False):
+    return_value = []
+    numstrings = unpack_short_int(buf_to_parse.read(2))
+    for i in range(0, numstrings):
+        # base stringtable
+        curr_stringtable = { "data": None, "userdataPresent": False, "userdata": None }
+        
+        curr_stringtable["data"] = ReadString(buf_to_parse)
+        curr_stringtable["userdataPresent"] = buf_to_parse.readbit(1).any()
+
+        if curr_stringtable["userdataPresent"]:
+            curr_stringtable["userdata"] = ReadRawDataInt16(buf_to_parse)
+
+        if i <= 1 and clientside_data:
+            continue
+
+        return_value.append(curr_stringtable)
+        
+    if not clientside_data: # so we're parsing client entries...
+        if buf_to_parse.readbit(1).any():
+            return_value += ParseStringtable(buf_to_parse, True) # it's identical to normal entries, so parse it again.
+    
+    return return_value
+
