@@ -1,15 +1,5 @@
-# Source Engine Demo Reader/Parser
+# YUP! Archived before a real release.
 
-Parses `.dem` files into it's header and packets. `main.py` may be used to test if it can read an entire file and `parsing.py` may be imported into a python script to read the demo file in your own code.
+[This project is much more promising.](https://github.com/Mallowwww/demoview) Please use that one instead of mine.
 
-It currently cannot parse datatables, but it's a planned feature in the future.
-
-It is currently based on [nillerusr's "source-engine" repository](https://github.com/nillerusr/source-engine).
-
-# Planned features
-
-* Read datatables and Source packets. (urgent)
-
-* Write all data into a `.json` file.
-
-* Replace terminal text with GUI.
+If you're curious about what this README was, check the repo history.
